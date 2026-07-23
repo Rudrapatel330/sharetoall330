@@ -40,12 +40,14 @@ export async function GET(
     if (!response.ok) {
       throw new Error('Failed to fetch from blob storage');
     }
+    
+    const contentType = response.headers.get('Content-Type') || 'application/octet-stream';
 
     return new NextResponse(response.body, {
       status: 200,
       headers: {
         'Content-Disposition': `attachment; filename="${encodeURIComponent(filename)}"`,
-        'Content-Type': blob.contentType || 'application/octet-stream',
+        'Content-Type': contentType,
         'Content-Length': blob.size.toString(),
       },
     });
