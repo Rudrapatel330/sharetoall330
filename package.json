@@ -9,6 +9,7 @@
     "lint": "next lint"
   },
   "dependencies": {
+    "@vercel/blob": "^2.6.1",
     "express": "^5.2.1",
     "multer": "^2.2.0",
     "next": "latest",

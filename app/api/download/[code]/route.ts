@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import fs from 'fs';
-import { getFileMetadata } from '../../../../utils/db';
+import { list } from '@vercel/blob';
 
 export async function GET(
   request: NextRequest,
@@ -11,23 +10,35 @@ export async function GET(
     return NextResponse.json({ error: 'Code is required' }, { status: 400 });
   }
 
-  const metadata = getFileMetadata(code);
-  if (!metadata) {
-    return NextResponse.json({ error: 'Invalid code or file not found' }, { status: 404 });
+  try {
+    // Find the file by checking the prefix
+    const { blobs } = await list({ prefix: `${code}-` });
+    
+    if (blobs.length === 0) {
+      return NextResponse.json({ error: 'Invalid code or file not found' }, { status: 404 });
+    }
+
+    const blob = blobs[0];
+    
+    // Extract the original filename by removing the code prefix
+    const filename = blob.pathname.substring(code.length + 1);
+
+    // Fetch the file from the blob URL
+    const response = await fetch(blob.url);
+    if (!response.ok) {
+      throw new Error('Failed to fetch from blob storage');
+    }
+
+    return new NextResponse(response.body, {
+      status: 200,
+      headers: {
+        'Content-Disposition': `attachment; filename="${encodeURIComponent(filename)}"`,
+        'Content-Type': blob.contentType || 'application/octet-stream',
+        'Content-Length': blob.size.toString(),
+      },
+    });
+  } catch (error) {
+    console.error('Error during download:', error);
+    return NextResponse.json({ error: 'Download failed' }, { status: 500 });
   }
-
-  if (!fs.existsSync(metadata.filePath)) {
-    return NextResponse.json({ error: 'File missing on server' }, { status: 404 });
-  }
-
-  const fileBuffer = fs.readFileSync(metadata.filePath);
-
-  return new NextResponse(fileBuffer, {
-    status: 200,
-    headers: {
-      'Content-Disposition': `attachment; filename="${encodeURIComponent(metadata.fileName)}"`,
-      'Content-Type': metadata.mimeType,
-      'Content-Length': metadata.size.toString(),
-    },
-  });
 }

@@ -1,4 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { put } from '@vercel/blob';
+
+function generateCode() {
+  return Math.floor(100000 + Math.random() * 900000).toString();
+}
 
 export async function POST(request: NextRequest) {
   try {
@@ -9,33 +14,17 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'No file provided' }, { status: 400 });
     }
 
-    // Upload directly to file.io
-    const fileIoFormData = new FormData();
-    fileIoFormData.append('file', file);
+    const code = generateCode();
     
-    // Setting autoDelete=true is the default, but we can be explicit
-    // Set expires=1d just in case, though it deletes on first download
-    const response = await fetch('https://file.io/?expires=1d', {
-      method: 'POST',
-      body: fileIoFormData,
+    // Upload directly to Vercel Blob
+    const blob = await put(`${code}-${file.name}`, file, {
+      access: 'public',
+      addRandomSuffix: false, // We rely on our 6-digit code for uniqueness in this simple setup
     });
 
-    if (!response.ok) {
-      throw new Error(`file.io responded with ${response.status}`);
-    }
-
-    const data = await response.json();
-    
-    if (!data.success) {
-      throw new Error('file.io upload failed');
-    }
-
-    // The key is the code (e.g. "qY7xR4w")
-    const code = data.key;
-
     return NextResponse.json({ code, message: 'File uploaded successfully' }, { status: 201 });
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error during upload:', error);
-    return NextResponse.json({ error: 'Upload failed due to network error' }, { status: 500 });
+    return NextResponse.json({ error: error.message || 'Upload failed' }, { status: 500 });
   }
 }
