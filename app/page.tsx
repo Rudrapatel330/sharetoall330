@@ -188,21 +188,21 @@ export default function Home() {
           </h2>
           
           <div className="input-group">
-            <p style={{ color: 'var(--text-secondary)' }}>Enter the 6-digit code to securely download your file.</p>
+            <p style={{ color: 'var(--text-secondary)' }}>Enter the code to securely download your file.</p>
             
             <input 
               type="text" 
               className="code-input"
-              placeholder="000000"
-              maxLength={6}
+              placeholder="aBc12X"
+              maxLength={20}
               value={downloadCode}
-              onChange={(e) => setDownloadCode(e.target.value.replace(/\D/g, ''))}
+              onChange={(e) => setDownloadCode(e.target.value.trim())}
             />
 
             <button 
               className="btn btn-primary" 
               onClick={handleDownload}
-              disabled={downloadCode.length !== 6 || downloading}
+              disabled={downloadCode.length === 0 || downloading}
             >
               {downloading ? 'Downloading...' : 'Download File'}
             </button>

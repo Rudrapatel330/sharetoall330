@@ -1,7 +1,4 @@
 import { NextRequest, NextResponse } from 'next/server';
-import path from 'path';
-import fs from 'fs';
-import { generateUniqueCode, saveFileMetadata, UPLOADS_DIR } from '../../../utils/db';
 
 export async function POST(request: NextRequest) {
   try {
@@ -12,28 +9,33 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'No file provided' }, { status: 400 });
     }
 
-    const buffer = Buffer.from(await file.arrayBuffer());
-    const code = generateUniqueCode();
+    // Upload directly to file.io
+    const fileIoFormData = new FormData();
+    fileIoFormData.append('file', file);
     
-    // Save file
-    const safeFilename = file.name.replace(/[^a-zA-Z0-9.-]/g, '_');
-    const filename = `${code}_${safeFilename}`;
-    const filePath = path.join(UPLOADS_DIR, filename);
-    
-    fs.writeFileSync(filePath, buffer);
-    
-    // Save metadata
-    saveFileMetadata(code, {
-      fileName: file.name,
-      mimeType: file.type || 'application/octet-stream',
-      size: file.size,
-      filePath: filePath,
-      uploadedAt: new Date().toISOString()
+    // Setting autoDelete=true is the default, but we can be explicit
+    // Set expires=1d just in case, though it deletes on first download
+    const response = await fetch('https://file.io/?expires=1d', {
+      method: 'POST',
+      body: fileIoFormData,
     });
+
+    if (!response.ok) {
+      throw new Error(`file.io responded with ${response.status}`);
+    }
+
+    const data = await response.json();
+    
+    if (!data.success) {
+      throw new Error('file.io upload failed');
+    }
+
+    // The key is the code (e.g. "qY7xR4w")
+    const code = data.key;
 
     return NextResponse.json({ code, message: 'File uploaded successfully' }, { status: 201 });
   } catch (error) {
     console.error('Error during upload:', error);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    return NextResponse.json({ error: 'Upload failed due to network error' }, { status: 500 });
   }
 }
