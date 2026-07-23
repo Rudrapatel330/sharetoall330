@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { list, del } from '@vercel/blob';
 
-export async function GET(request: Request) {
+export async function GET() {
   try {
     let hasMore = true;
     let currentCursor: string | undefined = undefined;

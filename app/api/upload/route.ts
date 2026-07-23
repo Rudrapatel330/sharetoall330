@@ -23,8 +23,9 @@ export async function POST(request: NextRequest) {
     });
 
     return NextResponse.json({ code, message: 'File uploaded successfully' }, { status: 201 });
-  } catch (error: any) {
+  } catch (error) {
     console.error('Error during upload:', error);
-    return NextResponse.json({ error: error.message || 'Upload failed' }, { status: 500 });
+    const message = error instanceof Error ? error.message : 'Upload failed';
+    return NextResponse.json({ error: message }, { status: 500 });
   }
 }
