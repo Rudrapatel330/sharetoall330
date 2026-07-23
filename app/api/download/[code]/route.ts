@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { list } from '@vercel/blob';
+import { list, del } from '@vercel/blob';
 
 export async function GET(
   request: NextRequest,
@@ -19,6 +19,18 @@ export async function GET(
     }
 
     const blob = blobs[0];
+    
+    // Check if the file is older than 1 hour
+    const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000);
+    if (new Date(blob.uploadedAt) < oneHourAgo) {
+      // File has expired, delete it now
+      try {
+        await del(blob.url);
+      } catch (e) {
+        console.error("Failed to delete expired file:", e);
+      }
+      return NextResponse.json({ error: 'File has expired (older than 1 hour)' }, { status: 410 });
+    }
     
     // Extract the original filename by removing the code prefix
     const filename = blob.pathname.substring(code.length + 1);
