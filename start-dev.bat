@@ -1,0 +1,9 @@
+@echo off
+echo Starting Next.js Dev Server...
+start cmd /k "npm run dev"
+
+echo Waiting for server to start...
+timeout /t 5
+
+echo Starting LocalTunnel to expose the server...
+npx localtunnel --port 3000
